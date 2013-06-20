@@ -176,7 +176,8 @@ class Autoload
 		    {
 		        if($sub == '/libs/classes' && is_dir($module_dir.$file.$sub))
 		        {
-		            $classes = array_merge($classes, $this->getModuleClasses($module_dir.$file.$sub));
+		        	if(ModuleCore::isInstalled($file) && ModuleCore::isEnabled($file))
+		            		$classes = array_merge($classes, $this->getModuleClasses($module_dir.$file.$sub));
 		        }
 		        elseif(strpos($module_dir,'/libs/classes'))
 		        {
