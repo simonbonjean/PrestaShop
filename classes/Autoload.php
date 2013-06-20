@@ -121,7 +121,8 @@ class Autoload
 			$this->getClassesFromDir('classes/'),
 			$this->getClassesFromDir('override/classes/'),
 			$this->getClassesFromDir('controllers/'),
-			$this->getClassesFromDir('override/controllers/')
+			$this->getClassesFromDir('override/controllers/'),
+			$this->getModuleClasses()
 		);
 		ksort($classes);
 		$content = '<?php return '.var_export($classes, true).'; ?>';
@@ -162,7 +163,47 @@ class Autoload
 
 		$this->index = $classes;
 	}
-
+	/**
+	 * Retrieve recursively all classes in a all modules libs/classes directory and its subdirectories
+	 * @return array
+	 */
+	public function getModuleClasses($module_dir = _PS_MODULE_DIR_,$sub='/libs/classes'){
+		$classes = array();
+		
+		foreach (scandir($module_dir) as $file)
+		{
+		    if ($file[0] != '.')
+		    {
+		        if($sub == '/libs/classes' && is_dir($module_dir.$file.$sub))
+		        {
+		            $classes = array_merge($classes, $this->getModuleClasses($module_dir.$file.$sub));
+		        }
+		        elseif(strpos($module_dir,'/libs/classes'))
+		        {
+		            $path = $module_dir.'/'.$file;
+		
+		            if(is_dir($path))
+		            {
+		                $classes = array_merge($classes, $this->getModuleClasses($path.$sub,''));
+		            }
+		            elseif(substr($file, -4) == '.php')
+		            {
+		                $content = file_get_contents($path);
+		                $pattern = '#\W((abstract\s+)?class|interface)\s+(?P<classname>'.basename($file, '.php').'(Core)?)'
+		                    .'(\s+extends\s+[a-z][a-z0-9_]*)?(\s+implements\s+[a-z][a-z0-9_]*(\s*,\s*[a-z][a-z0-9_]*)*)?\s*\{#i';
+		                if (preg_match($pattern, $content, $m))
+		                {
+		                    $path = 'modules/'. str_replace(_PS_MODULE_DIR_,'',$module_dir) .'/';
+		                    $classes[$m['classname']] = $path.$file;
+		                    if (substr($m['classname'], -4) == 'Core')
+		                        $classes[substr($m['classname'], 0, -4)] = '';
+		                }
+		            }
+		        }
+		    }
+		}
+		return $classes;
+	}
 	/**
 	 * Retrieve recursively all classes in a directory and its subdirectories
 	 *
